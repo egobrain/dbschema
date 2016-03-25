@@ -2,9 +2,7 @@
 
 -export([
          init_per_suite/1,
-         init_per_group/2,
          all/0,
-         end_per_group/2,
          end_per_suite/1,
 
          up_test/1,
