@@ -3,13 +3,13 @@
 [![GitHub tag](https://img.shields.io/github/tag/egobrain/dbschema.svg)](https://github.com/egobrain/dbschema)
 [![Hex.pm](https://img.shields.io/hexpm/v/dbschema.svg)](https://hex.pm/packages/dbschema)
 
-# Erlang posrgresql migrations utils
+# Erlang PostgreSQL migrations utils
 ----------------------------------------------------
 
 ## Description ##
 
 Project is based on epgpool and epgsql.
-It supports sql and erl migration description.
+It supports `sql` and `erl` migrations description.
 
 ## Usage ##
 
