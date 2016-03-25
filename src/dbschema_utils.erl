@@ -35,13 +35,14 @@ success_foreach(Fun, [Arg|Rest]) ->
         {error, _Reason} = Err -> Err
     end.
 
--spec success_map(fun((A) -> {ok,B} | {error,R}), [A]) -> {ok,[B]} | {error,R}.
+-spec success_map(fun((A) -> ok | {ok,B} | {error,R}), [A]) -> {ok,[B]} | {error,R}.
 success_map(F, List) -> success_map_(F, List, []).
 success_map_(_F, [], Acc) -> {ok, lists:reverse(Acc)};
 success_map_(F, [H|T], Acc) ->
     case F(H) of
         {error, _Reason} = Err -> Err;
-        {ok, V} -> success_map_(F, T, [V|Acc])
+        {ok, V} -> success_map_(F, T, [V|Acc]);
+        ok -> success_map_(F, T, Acc)
     end.
 
 -include_lib("eunit/include/eunit.hrl").
