@@ -13,9 +13,8 @@
 
 up(MigrationsFolder) ->
     do([error_m ||
-           UpFolder = filename:join([MigrationsFolder, "up"]),
            dbschema_pg_driver:init(),
-           FileMigrations = get_migrations(UpFolder),
+           FileMigrations = get_migrations(MigrationsFolder),
            Ids = [Id || #migration{id=Id} <- FileMigrations],
            dbschema_utils:check_monotonic(Ids),
            LastId <- dbschema_pg_driver:get_last_id(),
@@ -26,7 +25,7 @@ up(MigrationsFolder) ->
                ],
            dbschema_utils:success_foreach(
                fun(Migration) ->
-                   up_(UpFolder, Migration)
+                   perform_(up, MigrationsFolder, Migration)
                end, ActualMigrations)
        ]).
 
@@ -34,12 +33,11 @@ list() ->
     dbschema_pg_driver:list(0).
 
 down(MigrationsFolder, MigrationId) ->
-    DownFolder = filename:join([MigrationsFolder, "down"]),
     do([error_m ||
            ActualMigrations <- dbschema_pg_driver:list(MigrationId),
            dbschema_utils:success_foreach(
                fun(Migration) ->
-                   down_(DownFolder, Migration)
+                   perform_(down, MigrationsFolder, Migration)
                end, lists:reverse(ActualMigrations))
        ]).
 
@@ -47,20 +45,19 @@ down(MigrationsFolder, MigrationId) ->
 %%% Internal functions
 %% =============================================================================
 
-up_(UpFolder, #migration{filename=Filename}=Migration) ->
-    UpFilename = filename:join([UpFolder, Filename]),
+perform_(Type, MigrationsFolder, #migration{filename=Filename}=Migration) ->
+    MigrationFile = filename:join([MigrationsFolder, Filename]),
     do([error_m ||
-           Sql <- read_file(UpFilename),
-           lager:info("Performing migration: [UP] \"~s\"", [Filename]),
-           dbschema_pg_driver:up(Migration, Sql)
-       ]).
-
-down_(DownFolder, #migration{filename=Filename}=Migration) ->
-    DownFilename = filename:join([DownFolder, Filename]),
-    do([error_m ||
-           Sql <- read_file(DownFilename),
-           lager:info("Performing migration: [DOWN] \"~s\"", [Filename]),
-           dbschema_pg_driver:down(Migration, Sql)
+           FileContent <- read_file(MigrationFile),
+           {Up, Down} = split_sql(FileContent),
+           case Type of
+               up ->
+                   lager:info("Performing migration: [UP] \"~s\"", [Filename]),
+                   dbschema_pg_driver:up(Migration, Up);
+               down ->
+                   lager:info("Performing migration: [DOWN] \"~s\"", [Filename]),
+                   dbschema_pg_driver:down(Migration, Down)
+           end
        ]).
 
 -spec get_migrations(Folder :: file:name()) -> [migration()].
@@ -114,3 +111,23 @@ read_file(Filename) ->
         {error, Reason} ->
             {error, {file_error, Filename, Reason}}
     end.
+
+split_sql(FileContent) ->
+    Rows = binary:split(FileContent, <<"\n">>, [global]),
+    {ok, UpP} = re:compile(<<"^--\\s*up\\s*">>, [caseless]),
+    {ok, DownP} = re:compile(<<"^--\\s*down\\s*">>, [caseless]),
+    {_, UpR, DownR} = lists:foldl(fun(Row, {St, UpRows, DownRows}) ->
+        case re:run(Row, UpP) of
+            {match, _} -> {up, UpRows, DownRows};
+            nomatch ->
+                case re:run(Row, DownP) of
+                    {match, _} -> {down, UpRows, DownRows};
+                    nomatch ->
+                        case St of
+                            up -> {St, [Row,$\n|UpRows], DownRows};
+                            down -> {St, UpRows, [Row,$\n|DownRows]}
+                        end
+                end
+        end
+    end, {up, [], []}, Rows),
+    {lists:reverse(UpR), lists:reverse(DownR)}.
