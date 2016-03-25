@@ -48,18 +48,6 @@ start_epgpool(State) ->
     {ok, _} = application:ensure_all_started(epgpool),
     [{pg_config, Config}|State].
 
-init_per_group(table, Config) ->
-    {ok, _, _} = epgpool:squery(
-        "create table test("
-        "    id int primary key,"
-        "    name text"
-        ");"),
-    Config.
-
-end_per_group(table, _Config) ->
-    {ok, _, _} = epgpool:squery("drop table test"),
-    ok.
-
 end_per_suite(State) ->
     ok = epgpool_cth:stop_postgres(?config(pg_config, State)).
 
