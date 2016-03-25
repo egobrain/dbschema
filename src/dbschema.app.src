@@ -1,0 +1,21 @@
+%% -*- erlang -*-
+
+{application, dbschema,
+ [
+  {description, "Database postgresql migrations util"},
+  {vsn, git},
+  {registered, []},
+  {applications,
+   [
+    kernel,
+    stdlib,
+    lager,
+    epgpool,
+    erlando
+   ]},
+  {env, []},
+
+  {maintainers, ["Yakov Kozlov"]},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/egobrain/dbschema"}]}
+ ]}.
