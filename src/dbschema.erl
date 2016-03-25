@@ -45,20 +45,25 @@ down(MigrationsFolder, MigrationId) ->
 %%% Internal functions
 %% =============================================================================
 
-perform_(Type, MigrationsFolder, #migration{filename=Filename}=Migration) ->
+perform_(Type, MigrationsFolder, #migration{filename=Filename, type = ExtType}=Migration) ->
     MigrationFile = filename:join([MigrationsFolder, Filename]),
-    do([error_m ||
-           FileContent <- read_file(MigrationFile),
-           {Up, Down} = split_sql(FileContent),
-           case Type of
-               up ->
-                   lager:info("Performing migration: [UP] \"~s\"", [Filename]),
-                   dbschema_pg_driver:up(Migration, Up);
-               down ->
-                   lager:info("Performing migration: [DOWN] \"~s\"", [Filename]),
-                   dbschema_pg_driver:down(Migration, Down)
-           end
-       ]).
+    case ExtType of
+        <<"erl">> ->
+            {ok, Module} = compile:file(binary_to_list(MigrationFile)),
+            Up = fun Module:up/1,
+            Down = fun Module:down/1;
+        <<"sql">> ->
+            {ok, FileContent} = read_file(MigrationFile),
+            {Up, Down} = split_sql(FileContent)
+    end,
+    case Type of
+        up ->
+            lager:info("Performing migration: [UP] \"~s\"", [Filename]),
+            dbschema_pg_driver:up(Migration, Up);
+        down ->
+            lager:info("Performing migration: [DOWN] \"~s\"", [Filename]),
+            dbschema_pg_driver:down(Migration, Down)
+    end.
 
 -spec get_migrations(Folder :: file:name()) -> [migration()].
 get_migrations(Folder) ->
@@ -70,7 +75,8 @@ get_migrations(Folder) ->
                 F2 = filename:basename(F),
                 case migration_file(F2) of
                     {ok, Migration} -> [Migration|Acc];
-                    {error, _Reason} -> Acc
+                    {error, _Reason} ->
+                        Acc
                 end
             end,
             []),
@@ -93,7 +99,8 @@ migration_file(Filename) ->
       Ext :: binary(),
       Filename :: binary(),
       Reason :: unknown_extension.
-migration_file(Id, Type, Filename) when Type =:= <<"sql">>  ->
+migration_file(Id, Type, Filename) when Type =:= <<"sql">>;
+                                        Type =:= <<"erl">> ->
     {ok, #migration{id = Id, filename = Filename, type = Type}};
 migration_file(_, _, _) ->
     {error, unknown_extension}.

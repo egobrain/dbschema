@@ -50,11 +50,11 @@ get_last_id() ->
                ])
         end).
 
-up(#migration{id=Id, filename=Filename, type=Type}, Sql) ->
+up(#migration{id=Id, filename=Filename, type=Type}, Fun) when is_function(Fun, 1) ->
     epgpool:transaction(
         fun(C) ->
             do([error_m||
-                   squery(C, Sql),
+                   Fun(C),
                    InsertMigrationSql =
                        "insert into "
                        "migrations(\"id\", \"filename\", \"type\", \"timestamp\") "
@@ -62,7 +62,9 @@ up(#migration{id=Id, filename=Filename, type=Type}, Sql) ->
                    equery(C, InsertMigrationSql, [Id, Filename, Type, os:timestamp()]),
                    return(ok)
                ])
-        end).
+        end);
+up(Migration, Sql) ->
+    up(Migration, squery_fun(Sql)).
 
 list(MigrationsId) ->
     Sql =
@@ -78,17 +80,19 @@ list(MigrationsId) ->
                ])
         end).
 
-down(#migration{id=Id}, Sql) ->
+down(#migration{id=Id}, Fun) when is_function(Fun, 1) ->
     epgpool:transaction(
         fun(C) ->
             do([error_m ||
-                   squery(C, Sql),
+                   Fun(C),
                    DeleteMigrationSql =
                        "delete from migrations where \"id\" = $1;",
                    equery(C, DeleteMigrationSql, [Id]),
                    return(ok)
                ])
-        end).
+        end);
+down(Migration, Sql) ->
+    down(Migration, squery_fun(Sql)).
 
 is_setup(C) ->
     Sql =
@@ -106,6 +110,9 @@ is_setup(C) ->
 
 squery(C, Sql) ->
     result(epgpool:squery(C, Sql)).
+
+squery_fun(Sql) ->
+    fun(C) -> squery(C, Sql) end.
 
 equery(C, Sql, Params) ->
     result(epgpool:equery(C, Sql, Params)).

@@ -79,10 +79,17 @@ up_test(_Config) ->
     ok = dbschema:up(?MIGRATION_DIR),
     {ok, _, [
         {1, <<"test1">>, _},
-        {2, <<"test2">>, _}
-    ]} = epgpool:equery("select id, name, ts from test order by id", []).
+        {2, <<"test2">>, _},
+        {3, <<"erl">>, _}
+    ]} = epgpool:equery("select id, name, ts from test order by id", []),
+    {ok, 3} = dbschema_pg_driver:get_last_id().
 
 down_test(_Config) ->
     ok = dbschema:down(?MIGRATION_DIR, 1),
     {ok, Columns, _} = epgpool:equery("select * from test order by id", []),
-    false = lists:keymember(<<"ts">>, #column.name, Columns).
+    false = lists:keymember(<<"ts">>, #column.name, Columns),
+    {ok, 1} = dbschema_pg_driver:get_last_id(),
+    {ok, _, [
+        {1, <<"test1">>},
+        {2, <<"test2">>}
+    ]} = epgpool:equery("select id, name from test order by id", []).

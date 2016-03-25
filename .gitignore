@@ -7,3 +7,4 @@ erl_crash.dump
 .dialyzer_plt
 .rebar
 *.plt
+rebar.lock
