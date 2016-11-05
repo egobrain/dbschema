@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/egobrain/dbschema.png?branch=master)](https://travis-ci.org/egobrain/dbschema.png?branch=master)
+[![Build Status](https://travis-ci.org/egobrain/dbschema.png?branch=master)](https://travis-ci.org/egobrain/dbschema)
 [![Coveralls](https://img.shields.io/coveralls/egobrain/dbschema.svg)](https://coveralls.io/github/egobrain/dbschema)
 [![GitHub tag](https://img.shields.io/github/tag/egobrain/dbschema.svg)](https://github.com/egobrain/dbschema)
 [![Hex.pm](https://img.shields.io/hexpm/v/dbschema.svg)](https://hex.pm/packages/dbschema)
