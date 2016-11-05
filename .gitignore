@@ -8,3 +8,4 @@ erl_crash.dump
 .rebar
 *.plt
 rebar.lock
+compile_commands.json
